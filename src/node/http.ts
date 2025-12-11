@@ -316,10 +316,19 @@ export const getCookieOptions = (req: express.Request): express.CookieOptions =>
     req.query.base || req.body?.base || "/",
     req.query.href || req.body?.href || "http://" + (req.headers.host || "localhost"),
   )
+
+  // When trusted-origins is configured, enable cross-origin iframe support by
+  // using SameSite=None (requires Secure). This allows cookies to be sent when
+  // code-server is embedded in an iframe from a trusted cross-origin parent.
+  const trustedOrigins = req.args["trusted-origins"] || []
+  const isCrossOriginEnabled = trustedOrigins.length > 0
+
   return {
     domain: getCookieDomain(url.host, req.args["proxy-domain"]),
     path: normalize(url.pathname) || "/",
-    sameSite: "lax",
+    sameSite: isCrossOriginEnabled ? "none" : "lax",
+    // SameSite=None requires Secure attribute (cookies only sent over HTTPS)
+    ...(isCrossOriginEnabled && { secure: true }),
   }
 }
 
