@@ -16,46 +16,16 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/browser/client.ts
 +++ code-server/lib/vscode/src/vs/workbench/browser/client.ts
-@@ -1,7 +1,10 @@
+@@ -1,4 +1,5 @@
  import { Disposable } from "../../base/common/lifecycle.js";
-+import { localize } from '../../nls.js';
-+import { INotificationService, Severity } from '../../platform/notification/common/notification.js';
++// Insecure context notification disabled - imports removed
  
  export class CodeServerClient extends Disposable {
  	constructor (
-+		@INotificationService private notificationService: INotificationService,
- 	) {
- 		super();
- 	}
-@@ -42,5 +45,31 @@ export class CodeServerClient extends Di
+@@ -42,5 +45,6 @@ export class CodeServerClient extends Di
  				}
  			});
  		}
-+
-+		if (!window.isSecureContext) {
-+			this.notificationService.notify({
-+				severity: Severity.Warning,
-+				message: localize(
-+					'insecureContext',
-+					"{0} is being accessed in an insecure context. Web views, the clipboard, and other functionality may not work as expected.",
-+					'code-server',
-+				),
-+				actions: {
-+					primary: [
-+						{
-+							id: 'understand',
-+							label: localize('confirmInsecure', "I understand"),
-+							tooltip: '',
-+							class: undefined,
-+							enabled: true,
-+							checked: true,
-+							run: () => {
-+								return Promise.resolve();
-+							},
-+						},
-+					],
-+				},
-+			});
-+		}
++		// Insecure context notification disabled
  	}
  }
