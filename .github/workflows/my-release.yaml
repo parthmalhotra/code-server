@@ -185,6 +185,8 @@ jobs:
           workflow: my-release.yaml
           name: npm-package
           search_artifacts: true
+          # Allow downloading from failed runs (build job succeeded but other jobs failed)
+          workflow_conclusion: ''
 
       - name: Extract package
         run: tar -xzf package.tar.gz
