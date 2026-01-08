@@ -10,6 +10,11 @@ on:
         description: "Version to release (e.g., 1.0.0)"
         required: true
         type: string
+      skip_build:
+        description: "Skip building code-server (use artifacts from previous run)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,6 +32,7 @@ jobs:
     name: Build code-server
     runs-on: ubuntu-22.04
     timeout-minutes: 90
+    if: ${{ !inputs.skip_build }}
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -103,6 +109,7 @@ jobs:
     name: Build Linux ${{ matrix.arch }}
     runs-on: ubuntu-22.04
     needs: build
+    if: ${{ always() && (needs.build.result == 'success' || inputs.skip_build) }}
     timeout-minutes: 30
     strategy:
       matrix:
@@ -120,7 +127,7 @@ jobs:
       CXX: ${{ matrix.prefix }}-g++
       npm_config_arch: ${{ matrix.npm_arch }}
       npm_config_build_from_source: true
-      VERSION: ${{ needs.build.outputs.version }}
+      VERSION: ${{ needs.build.outputs.version || inputs.version }}
 
     steps:
       - name: Checkout repo
@@ -160,15 +167,24 @@ jobs:
 
       - name: Install nfpm
         run: |
-          curl -sSfL https://github.com/goreleaser/nfpm/releases/download/v2.35.3/nfpm_2.35.3_linux_amd64.tar.gz | sudo tar -C /usr/local/bin -zxv nfpm
+          curl -sSfL https://github.com/goreleaser/nfpm/releases/download/v2.44.1/nfpm_2.44.1_Linux_x86_64.tar.gz | sudo tar -C /usr/local/bin -zxv nfpm
 
       - name: Install npm dependencies
         run: SKIP_SUBMODULE_DEPS=1 npm ci
 
-      - name: Download build artifact
+      - name: Download build artifact (from current run)
+        if: ${{ !inputs.skip_build }}
         uses: actions/download-artifact@v4
         with:
           name: npm-package
+
+      - name: Download build artifact (from previous run)
+        if: ${{ inputs.skip_build }}
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: my-release.yaml
+          name: npm-package
+          search_artifacts: true
 
       - name: Extract package
         run: tar -xzf package.tar.gz
@@ -198,6 +214,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-22.04
     needs: [build, build-linux]
+    if: ${{ always() && needs.build-linux.result == 'success' }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -213,8 +230,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ needs.build.outputs.version }}
-          tag_name: v${{ needs.build.outputs.version }}
+          name: v${{ needs.build.outputs.version || inputs.version }}
+          tag_name: v${{ needs.build.outputs.version || inputs.version }}
           draft: false
           prerelease: false
           generate_release_notes: true
