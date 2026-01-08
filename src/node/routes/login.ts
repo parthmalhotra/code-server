@@ -1,4 +1,4 @@
-import { Router, Request } from "express"
+import { Router, Request, Response, NextFunction } from "express"
 import { promises as fs } from "fs"
 import { RateLimiter as Limiter } from "limiter"
 import * as path from "path"
@@ -55,7 +55,72 @@ const getRoot = async (req: Request, error?: Error): Promise<string> => {
 
 const limiter = new RateLimiter()
 
+/**
+ * Middleware to handle token-based authentication via URL parameter.
+ * This allows authentication via ?token=<password> which is useful for
+ * embedding code-server in iframes where form-based login isn't practical.
+ *
+ * The token parameter is checked against the configured password, and if valid,
+ * sets the authentication cookie with appropriate settings for iframe embedding.
+ */
+export const handleTokenAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const token = typeof req.query.token === "string" ? sanitizeString(req.query.token) : ""
+
+  if (!token) {
+    return next()
+  }
+
+  // Check rate limiting
+  if (!limiter.canTry()) {
+    return next()
+  }
+
+  const hashedPasswordFromArgs = req.args["hashed-password"]
+  const passwordMethod = getPasswordMethod(hashedPasswordFromArgs)
+
+  try {
+    const { isPasswordValid, hashedPassword } = await handlePasswordValidation({
+      passwordMethod,
+      hashedPasswordFromArgs,
+      passwordFromRequestBody: token,
+      passwordFromArgs: req.args.password,
+    })
+
+    if (isPasswordValid) {
+      // Get cookie options that support iframe embedding (SameSite=None when trusted-origins is set)
+      const cookieOptions = getCookieOptions(req)
+
+      // Set the authentication cookie
+      res.cookie(req.cookieSessionName, hashedPassword, cookieOptions)
+
+      // Redirect to remove the token from URL (for security) and go to destination
+      const to = (typeof req.query.to === "string" && req.query.to) || "/"
+      return redirect(req, res, to, { to: undefined, token: undefined })
+    }
+
+    // Invalid token - count against rate limiter
+    limiter.removeToken()
+    console.error(
+      "Failed token auth attempt",
+      JSON.stringify({
+        xForwardedFor: req.headers["x-forwarded-for"],
+        remoteAddress: req.connection.remoteAddress,
+        userAgent: req.headers["user-agent"],
+        timestamp: Math.floor(new Date().getTime() / 1000),
+      }),
+    )
+  } catch (error) {
+    // Log error but continue to normal login flow
+    console.error("Token auth error:", error)
+  }
+
+  next()
+}
+
 export const router = Router()
+
+// Handle token auth before checking if already authenticated
+router.use(handleTokenAuth)
 
 router.use(async (req, res, next) => {
   const to = (typeof req.query.to === "string" && req.query.to) || "/"

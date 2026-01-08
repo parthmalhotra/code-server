@@ -20,6 +20,7 @@ import * as domainProxy from "./domainProxy"
 import { errorHandler, wsErrorHandler } from "./errors"
 import * as health from "./health"
 import * as login from "./login"
+import { handleTokenAuth } from "./login"
 import * as logout from "./logout"
 import * as pathProxy from "./pathProxy"
 import * as update from "./update"
@@ -155,6 +156,9 @@ export const register = async (
   app.wsRouter.use("/healthz", health.wsRouter.router)
 
   if (args.auth === AuthType.Password) {
+    // Handle token-based auth on any route (useful for iframe embedding)
+    // This must come before the login router so ?token= works on any URL
+    app.router.use(handleTokenAuth)
     app.router.use("/login", login.router)
     app.router.use("/logout", logout.router)
   } else {

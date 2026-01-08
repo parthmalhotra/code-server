@@ -134,7 +134,21 @@ jobs:
 
       - name: Install cross-compiler and dependencies
         run: |
-          sudo dpkg --add-architecture ${{ matrix.arch == 'arm64' && 'arm64' || 'amd64' }}
+          # For arm64 cross-compilation, we need to add the ports.ubuntu.com mirror
+          # since the main Ubuntu mirrors don't have arm64 packages on amd64 hosts
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            # Add arm64 architecture
+            sudo dpkg --add-architecture arm64
+            
+            # Add ports.ubuntu.com as source for arm64 packages
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/arm64.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
+            
+            # Restrict the main sources to amd64 only to avoid conflicts
+            sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+          fi
+          
           sudo apt update
           sudo apt install -y \
             crossbuild-essential-${{ matrix.arch }} \
