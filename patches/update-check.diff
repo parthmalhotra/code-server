@@ -12,32 +12,27 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/browser/client.ts
 +++ code-server/lib/vscode/src/vs/workbench/browser/client.ts
-@@ -1,10 +1,16 @@
+@@ -1,7 +1,13 @@
  import { Disposable } from "../../base/common/lifecycle.js";
- import { localize } from '../../nls.js';
++import { localize } from '../../nls.js';
 +import { ILogService } from '../../platform/log/common/log.js';
- import { INotificationService, Severity } from '../../platform/notification/common/notification.js';
++import { INotificationService, Severity } from '../../platform/notification/common/notification.js';
 +import { IProductService } from '../../platform/product/common/productService.js';
 +import { IStorageService, StorageScope, StorageTarget } from '../../platform/storage/common/storage.js';
  
  export class CodeServerClient extends Disposable {
  	constructor (
 +		@ILogService private logService: ILogService,
- 		@INotificationService private notificationService: INotificationService,
++		@INotificationService private notificationService: INotificationService,
 +		@IProductService private productService: IProductService,
 +		@IStorageService private storageService: IStorageService,
  	) {
  		super();
  	}
-@@ -71,5 +77,59 @@ export class CodeServerClient extends Di
- 				},
+@@ -42,5 +48,59 @@ export class CodeServerClient extends Di
  			});
  		}
-+
-+		if (this.productService.updateEndpoint) {
-+			this.checkUpdates(this.productService.updateEndpoint)
-+		}
-+	}
+ 	}
 +
 +	private checkUpdates(updateEndpoint: string) {
 +		const getUpdate = async (updateCheckEndpoint: string): Promise<void> => {
@@ -86,8 +81,10 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 +				});
 +		};
 +
-+		updateLoop();
- 	}
++		if (this.productService.updateEndpoint) {
++			updateLoop();
++		}
++	}
  }
 Index: code-server/lib/vscode/src/vs/base/common/product.ts
 ===================================================================
