@@ -12,7 +12,7 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/browser/client.ts
 +++ code-server/lib/vscode/src/vs/workbench/browser/client.ts
-@@ -1,7 +1,13 @@
+@@ -1,7 +1,16 @@
  import { Disposable } from "../../base/common/lifecycle.js";
 +import { localize } from '../../nls.js';
 +import { ILogService } from '../../platform/log/common/log.js';
@@ -29,9 +29,14 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
  	) {
  		super();
  	}
-@@ -42,5 +48,59 @@ export class CodeServerClient extends Di
+@@ -42,5 +51,59 @@ export class CodeServerClient extends Di
+ 				}
  			});
  		}
++
++		if (this.productService.updateEndpoint) {
++			this.checkUpdates(this.productService.updateEndpoint)
++		}
  	}
 +
 +	private checkUpdates(updateEndpoint: string) {
@@ -81,9 +86,7 @@ Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 +				});
 +		};
 +
-+		if (this.productService.updateEndpoint) {
-+			updateLoop();
-+		}
++		updateLoop();
 +	}
  }
 Index: code-server/lib/vscode/src/vs/base/common/product.ts
