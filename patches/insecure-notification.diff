@@ -1,31 +1,28 @@
-Add a notification when accessing code-server in an insecure context
+Disable the insecure context notification
 
-This is done because otherwise when things like the clipboard do not work users
-may think code-server is broken.  Ideally there would be a notification at the
-point where these things are used instead of this though.
-
-To test access over something like an HTTP domain or an IP address (not
-localhost). For example:
-
-1. run code-server
-2. use ngrok to expose code-server
-3. access via HTTP
-4. look for notification in bottom right
+The original patch added a notification when accessing code-server in an
+insecure context. This version keeps the structure but disables the
+notification since it can be disruptive for legitimate use cases.
 
 Index: code-server/lib/vscode/src/vs/workbench/browser/client.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/browser/client.ts
 +++ code-server/lib/vscode/src/vs/workbench/browser/client.ts
-@@ -1,4 +1,5 @@
+@@ -1,7 +1,10 @@
  import { Disposable } from "../../base/common/lifecycle.js";
-+// Insecure context notification disabled - imports removed
++import { localize } from '../../nls.js';
++import { INotificationService, Severity } from '../../platform/notification/common/notification.js';
  
  export class CodeServerClient extends Disposable {
  	constructor (
++		@INotificationService private notificationService: INotificationService,
+ 	) {
+ 		super();
+ 	}
 @@ -42,5 +45,6 @@ export class CodeServerClient extends Di
  				}
  			});
  		}
-+		// Insecure context notification disabled
++		// Insecure context notification disabled - remove the false && to re-enable
  	}
  }
