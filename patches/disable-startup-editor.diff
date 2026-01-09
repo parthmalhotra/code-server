@@ -1,22 +1,26 @@
 Disable the welcome/getting started page on first launch
 
 This patch sets the workbench.startupEditor to "none" by default, preventing
-the welcome page from opening on first launch. This is especially useful when
-embedding code-server in an iframe where the welcome page is not desired.
+the welcome page from opening on first launch. It also disables the chat panel
+from opening on startup. This is especially useful when embedding code-server
+in an iframe where the welcome page and chat panel are not desired.
 
 Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/server/node/webClientServer.ts
 +++ code-server/lib/vscode/src/vs/server/node/webClientServer.ts
-@@ -373,6 +373,12 @@ export class WebClientServer {
+@@ -373,6 +373,15 @@ export class WebClientServer {
  			isEnabledFileDownloads: !this._environmentService.args['disable-file-downloads'],
  			isEnabledFileUploads: !this._environmentService.args['disable-file-uploads'],
  			isEnabledCoderGettingStarted: !this._environmentService.args['disable-getting-started-override'],
-+			// Disable the welcome/startup editor by default to prevent it from
-+			// opening on first launch. This is especially useful for iframe embeds.
++			// Disable the welcome/startup editor and chat panel by default to prevent
++			// them from opening on first launch. This is especially useful for iframe embeds.
 +			configurationDefaults: {
 +				'workbench.startupEditor': 'none',
 +				'workbench.welcomePage.walkthroughs.openOnInstall': false,
++				'chat.commandCenter.enabled': false,
++				'chat.experimental.implicitContext.enabled': false,
++				'workbench.panel.chat.defaultLocation': 'hidden',
 +			},
  			_wrapWebWorkerExtHostInIframe,
  			developmentOptions: { enableSmokeTestDriver: this._environmentService.args['enable-smoke-test-driver'] ? true : undefined, logLevel: this._logService.getLevel() },
